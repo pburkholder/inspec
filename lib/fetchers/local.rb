@@ -10,7 +10,7 @@ module Fetchers
     attr_reader :files
 
     def self.resolve(target)
-      return nil unless File.exist?(target)
+      return nil unless target.is_a?(String) && File.exist?(target)
       new(target)
     end
 

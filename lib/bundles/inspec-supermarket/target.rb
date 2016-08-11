@@ -13,11 +13,11 @@ module Supermarket
     priority 500
 
     def self.resolve(target, opts = {})
-      return nil unless URI(target).scheme == 'supermarket'
+      return nil unless target.is_a?(String)
       return nil unless Supermarket::API.exist?(target)
       tool_info = Supermarket::API.find(target)
       super(tool_info['tool_source_url'], opts)
-    rescue URI::Error => _e
+    rescue URI::Error
       nil
     end
 

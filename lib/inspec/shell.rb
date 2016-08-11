@@ -5,6 +5,9 @@
 require 'rspec/core/formatters/base_text_formatter'
 
 module Inspec
+  # A pry based shell for inspec. Given a runner (with a configured backend and
+  # all that jazz), this shell will produce a pry shell from which you can run
+  # inspec/ruby commands that will be run within the context of the runner.
   class Shell
     def initialize(runner)
       @runner = runner
