@@ -163,7 +163,7 @@ class Inspec::InspecCLI < Inspec::BaseCLI # rubocop:disable Metrics/ClassLength
     o[:logger].level = get_log_level(o.log_level)
     if o[:command].nil?
       runner = Inspec::Runner.new(o)
-      return Inspec::Shell.new(runner).start
+      return Inspec::Shell.new(runner).start(o)
     else
       exit run_command(o)
     end

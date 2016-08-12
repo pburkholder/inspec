@@ -3,24 +3,28 @@
 # author: Christoph Hartmann
 
 require 'rspec/core/formatters/base_text_formatter'
+require 'pry'
 
 module Inspec
   # A pry based shell for inspec. Given a runner (with a configured backend and
   # all that jazz), this shell will produce a pry shell from which you can run
   # inspec/ruby commands that will be run within the context of the runner.
   class Shell
+    attr_reader :current_line
+
     def initialize(runner)
       @runner = runner
-      # load and configure pry
-      require 'pry'
-      configure_pry
+      @current_line = 0
     end
 
-    def start
-      # store context to run commands in this context
-      c = { content: 'binding.pry', ref: nil, line: nil }
-      @runner.add_content(c, [])
-      @runner.run
+    def start(opts)
+      # Create an in-memory empty profile so that we can add tests to it later.
+      # This context lasts for the duration of this "start" method call/pry
+      # session.
+      @ctx = @runner.add_target({'shell_context.rb' => ''}, opts)
+      configure_pry
+      binding.pry
+      @ctx = nil
     end
 
     def configure_pry
@@ -35,12 +39,30 @@ module Inspec
 
       # configure pry shell prompt
       Pry.config.prompt_name = 'inspec'
-      Pry.prompt = [proc { "#{readline_ignore("\e[0;32m")}#{Pry.config.prompt_name}> #{readline_ignore("\e[0m")}" }]
+      Pry.prompt = [proc { "#{readline_ignore("\e[0;32m")}#{Pry.config.prompt_name}:#{that.current_line}> #{readline_ignore("\e[0m")}" }]
 
       # Add a help menu as the default intro
-      Pry.hooks.add_hook(:before_session, :intro) do
+      Pry.hooks.add_hook(:before_session, 'inspec_intro') do
         intro
       end
+
+      # Evaluate the command given by the user as if it were inside a profile
+      # context (with all of the DSL available to us).
+      Pry.hooks.add_hook(:before_eval, 'inspec_before_eval') do |code, binding, pry|
+        before_eval(code)
+      end
+    end
+
+    def before_eval(code)
+      @current_line += 1
+      @runner.reset_tests
+      test = {
+        content: code,
+        ref: 'InSpec-Shell',
+        line: current_line,
+      }
+      @runner.append_content(@ctx, test, [])
+      @runner.run
     end
 
     def readline_ignore(code)

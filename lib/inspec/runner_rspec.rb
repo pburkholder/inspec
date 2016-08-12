@@ -87,16 +87,16 @@ module Inspec
       reporter.output_hash
     end
 
-    private
-
     # Empty the list of registered tests.
     #
     # @return [nil]
     def reset_tests
       @tests = RSpec::Core::World.new
       # resets "pending examples" in reporter
-      RSpec.configuration.reset
+      # RSpec.configuration.reset
     end
+
+    private
 
     FORMATTERS = {
       'json-min' => 'InspecRspecMiniJson',
@@ -109,6 +109,7 @@ module Inspec
     #
     # @return [nil]
     def configure_output
+      RSpec.configuration.reset
       if !@conf['output'] || @conf['output'] == '-'
         RSpec.configuration.output_stream = $stdout
       else
