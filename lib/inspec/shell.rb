@@ -9,7 +9,7 @@ module Inspec
   # A pry based shell for inspec. Given a runner (with a configured backend and
   # all that jazz), this shell will produce a pry shell from which you can run
   # inspec/ruby commands that will be run within the context of the runner.
-  class Shell
+  class Shell # rubocop:disable Metrics/ClassLength
     attr_reader :file_name
 
     def initialize(runner, opts)
@@ -68,7 +68,6 @@ module Inspec
       # Don't print out control class inspection when the user uses DSL methods.
       # Instead produce a result of evaluating their control.
       Pry.config.print = proc { |output, value| that.print_eval(output, value) }
-
     end
 
     def before_eval
@@ -173,14 +172,6 @@ EOF
 
     def resources
       puts Inspec::Resource.registry.keys.join(' ')
-    end
-  end
-
-  class NoSummaryFormatter < RSpec::Core::Formatters::BaseTextFormatter
-    RSpec::Core::Formatters.register self, :dump_summary
-
-    def dump_summary(*_args)
-      # output nothing
     end
   end
 end
