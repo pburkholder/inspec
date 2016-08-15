@@ -14,7 +14,7 @@ module Inspec
 
     def initialize(runner, opts)
       @runner = runner
-      @file_name = 'shell_context.rb'
+      @file_name = 'in_memory.rb'
       @opts = opts
     end
 
