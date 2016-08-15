@@ -163,7 +163,7 @@ class Inspec::InspecCLI < Inspec::BaseCLI # rubocop:disable Metrics/ClassLength
     o[:logger].level = get_log_level(o.log_level)
     if o[:command].nil?
       runner = Inspec::Runner.new(o)
-      return Inspec::Shell.new(runner).start(o)
+      return Inspec::Shell.new(runner, o).start
     else
       exit run_command(o)
     end
@@ -186,7 +186,7 @@ class Inspec::InspecCLI < Inspec::BaseCLI # rubocop:disable Metrics/ClassLength
 
   def run_command(opts)
     runner = Inspec::Runner.new(opts)
-    runner.add_target({'in_mem.rb' => opts[:command]}, opts)
+    runner.add_target({ 'in_mem.rb' => opts[:command] }, opts)
     runner.run
   end
 end

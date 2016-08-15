@@ -16,7 +16,6 @@ module Inspec
       @conf = conf
       @formatter = nil
       reset_tests
-      configure_output
     end
 
     # Create a new RSpec example group from arguments and block.
@@ -93,7 +92,8 @@ module Inspec
     def reset_tests
       @tests = RSpec::Core::World.new
       # resets "pending examples" in reporter
-      # RSpec.configuration.reset
+      RSpec.configuration.reset
+      configure_output
     end
 
     private
@@ -109,7 +109,6 @@ module Inspec
     #
     # @return [nil]
     def configure_output
-      RSpec.configuration.reset
       if !@conf['output'] || @conf['output'] == '-'
         RSpec.configuration.output_stream = $stdout
       else

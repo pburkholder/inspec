@@ -131,11 +131,6 @@ module Inspec
         profile.runner_context = ctx
       end
 
-      append_content(ctx, tests, libs, options)
-    end
-
-    # Returns the profile context used to evaluate the given content.
-    def append_content(ctx, tests, libs, options = {})
       # evaluate the test content
       tests = [tests] unless tests.is_a? Array
       tests.each { |t| add_test_to_context(t, ctx) }
@@ -151,6 +146,16 @@ module Inspec
       ctx
     end
 
+    def reregister_rules(ctx, options)
+      new_tests = false
+      filter_controls(ctx.rules, options[:controls]).each do |rule_id, rule|
+        if yield rule_id, rule
+          new_tests = true
+          register_rule(rule_id, rule)
+        end
+      end
+      new_tests
+    end
 
     def_delegator :@test_collector, :run
     def_delegator :@test_collector, :report

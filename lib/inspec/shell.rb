@@ -10,20 +10,28 @@ module Inspec
   # all that jazz), this shell will produce a pry shell from which you can run
   # inspec/ruby commands that will be run within the context of the runner.
   class Shell
-    attr_reader :current_line
+    attr_reader :file_name
 
-    def initialize(runner)
+    def initialize(runner, opts)
       @runner = runner
-      @current_line = 0
+      @file_name = 'shell_context.rb'
+      @opts = opts
     end
 
-    def start(opts)
+    def start
       # Create an in-memory empty profile so that we can add tests to it later.
       # This context lasts for the duration of this "start" method call/pry
       # session.
-      @ctx = @runner.add_target({'shell_context.rb' => ''}, opts)
+      @ctx = @runner.add_target({ file_name => '' }, @opts)
+      # This will hold a single evaluation binding context as opened within
+      # the instance_eval context of the anonymous class that the profile
+      # context creates to evaluate each individual test file. We want to
+      # pretend like we are constantly appending to the same file and want
+      # to capture the local variable context from inside said class.
+      @ctx_binding = @ctx.load('binding', file_name, 0)
       configure_pry
-      binding.pry
+      @ctx_binding.pry
+      @ctx_binding = nil
       @ctx = nil
     end
 
@@ -39,30 +47,52 @@ module Inspec
 
       # configure pry shell prompt
       Pry.config.prompt_name = 'inspec'
-      Pry.prompt = [proc { "#{readline_ignore("\e[0;32m")}#{Pry.config.prompt_name}:#{that.current_line}> #{readline_ignore("\e[0m")}" }]
+      Pry.prompt = [proc { "#{readline_ignore("\e[0;32m")}#{Pry.config.prompt_name}> #{readline_ignore("\e[0m")}" }]
 
       # Add a help menu as the default intro
       Pry.hooks.add_hook(:before_session, 'inspec_intro') do
         intro
       end
 
-      # Evaluate the command given by the user as if it were inside a profile
-      # context (with all of the DSL available to us).
-      Pry.hooks.add_hook(:before_eval, 'inspec_before_eval') do |code, binding, pry|
-        before_eval(code)
+      # Track the rules currently registered and what their merge count is.
+      Pry.hooks.add_hook(:before_eval, 'inspec_before_eval') do
+        before_eval
       end
+
+      # After pry has evaluated a commanding within the binding context of a
+      # test file, register all the rules it discovered.
+      Pry.hooks.add_hook(:after_eval, 'inspec_after_eval') do
+        after_eval
+      end
+
+      # Don't print out control class inspection when the user uses DSL methods.
+      # Instead produce a result of evaluating their control.
+      Pry.config.print = proc { |output, value| that.print_eval(output, value) }
+
     end
 
-    def before_eval(code)
-      @current_line += 1
+    def before_eval
+      @current_eval_rules = @ctx.rules.each_with_object({}) do |(rule_id, rule), h|
+        h[rule_id] = Inspec::Rule.merge_count(rule)
+      end
       @runner.reset_tests
-      test = {
-        content: code,
-        ref: 'InSpec-Shell',
-        line: current_line,
-      }
-      @runner.append_content(@ctx, test, [])
-      @runner.run
+    end
+
+    def after_eval
+      @current_eval_new_tests =
+        @runner.reregister_rules(@ctx, @opts) do |rule_id, rule|
+          @current_eval_rules[rule_id] != Inspec::Rule.merge_count(rule)
+        end
+    end
+
+    def print_eval(output, value)
+      # If no new tests were discovered, don't print out a summary.
+      if @current_eval_new_tests
+        @runner.run
+        output.puts "=> #{@runner.report.inspect}"
+      else
+        output.puts "=> #{value}"
+      end
     end
 
     def readline_ignore(code)
