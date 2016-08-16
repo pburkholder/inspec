@@ -359,7 +359,7 @@ This subcommand has additional options:
    Choose a backend: local, ssh, winrm, docker.
 
 ``-c``, ``--command=COMMAND``
-
+   A single command string to run instead of launching the shell.
 
 ``--host=HOST``
    Specify a remote host which is tested.
