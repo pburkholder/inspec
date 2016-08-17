@@ -27,7 +27,7 @@ module Compliance
       # TODO, api should not be dependent on .supported?
       response = Compliance::HTTP.get(url, config['token'], config['insecure'], !config.supported?(:oidc))
       data = response.body
-      if !data.nil?
+      if data != ''
         profiles = JSON.parse(data)
         # iterate over profiles
         profiles.map do |owner, ps|
@@ -36,6 +36,7 @@ module Compliance
           end
         end.flatten
       else
+        puts '401 Unauthorized. Please check your token.'
         []
       end
     end

@@ -31,6 +31,19 @@ refresh_token = ENV['COMPLIANCE_REFRESHTOKEN']
     its('exit_status') { should eq 0 }
   end
 
+  # submitting a wrong token should have an exit of 0
+  # TODO: give an error message if the token is not correct
+  describe command("#{inspec_bin} compliance login #{api_url} --insecure --user 'admin' --token 'wrong-token'") do
+    its('exit_status') { should eq 0 }
+  end
+
+  # profiles command fails gracefully when token/server info is incorrect
+  describe command("#{inspec_bin} compliance profiles") do
+    its('stdout') { should include '401 Unauthorized. Please check your token' }
+    its('stderr') { should eq '' }
+    its('exit_status') { should eq 0 }
+  end
+
   # login via access token token
   describe command("#{inspec_bin} compliance login #{api_url} --insecure --user 'admin' #{token_options}") do
     its('stdout') { should include 'Successfully authenticated' }
