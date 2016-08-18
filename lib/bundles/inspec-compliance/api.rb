@@ -30,19 +30,21 @@ module Compliance
       response_code = response.code
       case response_code
       when '200'
+        msg = 'success'
         profiles = JSON.parse(data)
         # iterate over profiles
-        profiles.map do |owner, ps|
+        mapped_profiles = profiles.map do |owner, ps|
           ps.keys.map do |name|
             { org: owner, name: name }
           end
         end.flatten
+        return msg, mapped_profiles
       when '401'
-        puts '401 Unauthorized. Please check your token.'
-        []
+        msg = '401 Unauthorized. Please check your token.'
+        return msg, []
       else
-        puts response_code, 'An error occured'
-        []
+        msg = "An unexpected error occurred (HTTP #{response_code}): #{response.message}"
+        return msg, []
       end
     end
 
